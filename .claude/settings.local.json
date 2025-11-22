@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python scraper.py:*)",
+      "Bash(timeout /t 5)",
+      "Bash(ping:*)",
+      "Bash(nul)",
+      "Bash(chcp:*)",
+      "Bash(python -X utf8:*)",
+      "Bash(dir:*)",
+      "Bash(python -u scraper.py:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
