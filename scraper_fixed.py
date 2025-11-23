@@ -26,9 +26,17 @@ def get_soup(url):
         print(f"Error fetching {url}: {e}", flush=True)
         return None
 
+def clean_text(text):
+    """Clean text by removing extra whitespace and newlines"""
+    if not text:
+        return ""
+    # Replace multiple spaces/newlines with single space
+    cleaned = ' '.join(text.split())
+    return cleaned.strip()
+
 def get_categories():
     """Scrape all categories from the main channels page"""
-    print("Fetching categories...")
+    print("Fetching categories...", flush=True)
     soup = get_soup(f"{BASE_URL}/channels/")
 
     if not soup:
@@ -42,7 +50,7 @@ def get_categories():
             # Get category name and URL
             link = grid.find('a', href=True)
             if link:
-                category_name = link.find('h2').text.strip()
+                category_name = clean_text(link.find('h2').text)
                 category_url = link['href']
 
                 categories.append({
@@ -50,10 +58,10 @@ def get_categories():
                     'url': category_url
                 })
         except Exception as e:
-            print(f"Error parsing category: {e}")
+            print(f"Error parsing category: {e}", flush=True)
             continue
 
-    print(f"Found {len(categories)} categories")
+    print(f"Found {len(categories)} categories", flush=True)
     return categories
 
 def get_channels_from_category(category_url):
@@ -62,7 +70,7 @@ def get_channels_from_category(category_url):
     if not category_url.startswith('/channels/'):
         category_url = f'/channels/{category_url}'
     full_url = urljoin(BASE_URL, category_url)
-    print(f"Fetching channels from {full_url}...")
+    print(f"Fetching channels from {full_url}...", flush=True)
 
     soup = get_soup(full_url)
     if not soup:
@@ -75,13 +83,13 @@ def get_channels_from_category(category_url):
         try:
             # Get channel name
             name_elem = area.find('h2', class_='font-style1')
-            channel_name = name_elem.text.strip() if name_elem else ""
+            channel_name = clean_text(name_elem.text) if name_elem else ""
 
             # Get channel username
             username_elem = area.find('p', class_='color-gray')
             username = ""
             if username_elem and username_elem.find('i'):
-                username = username_elem.find('i').text.strip()
+                username = clean_text(username_elem.find('i').text)
 
             # Get member count
             members_elem = area.find('p', class_='fz-15')
@@ -95,7 +103,7 @@ def get_channels_from_category(category_url):
             desc_elem = area.find('div', class_='channel-desc')
             description = ""
             if desc_elem and desc_elem.find('p'):
-                description = desc_elem.find('p').text.strip()
+                description = clean_text(desc_elem.find('p').text)
 
             # Get channel URL
             view_link = area.find('a', class_='telegram-btn')
@@ -112,16 +120,16 @@ def get_channels_from_category(category_url):
                     'url': channel_url
                 })
         except Exception as e:
-            print(f"Error parsing channel: {e}")
+            print(f"Error parsing channel: {e}", flush=True)
             continue
 
-    print(f"Found {len(channels)} channels")
+    print(f"Found {len(channels)} channels", flush=True)
     return channels
 
 def get_channel_details(channel_url):
     """Scrape detailed information from a channel page"""
     full_url = urljoin(BASE_URL, channel_url)
-    print(f"Fetching details from {full_url}...")
+    print(f"Fetching details from {full_url}...", flush=True)
 
     soup = get_soup(full_url)
     if not soup:
@@ -134,34 +142,63 @@ def get_channel_details(channel_url):
         details_section = soup.find('div', class_='reuse-grid', style=lambda x: x and 'padding-top:15px' in x)
 
         if details_section:
-            text = details_section.get_text()
+            # Find the main <p> tag with all details
+            detail_p = details_section.find('p')
 
-            # Extract Channel ID
-            channel_id_match = re.search(r'Channel ID\s*:\s*(@\S+)', text)
-            details['channel_id'] = channel_id_match.group(1) if channel_id_match else ""
+            if detail_p:
+                # Get text but split by line breaks properly
+                # Replace <br/> with newlines first
+                for br in detail_p.find_all('br'):
+                    br.replace_with('\n')
 
-            # Extract Category
+                # Now get the text with newlines
+                full_text = detail_p.get_text()
+
+                # Split into lines
+                lines = full_text.split('\n')
+
+                for line in lines:
+                    line = clean_text(line)
+                    if not line or ':' not in line:
+                        continue
+
+                    # Extract Channel ID
+                    if 'Channel ID' in line:
+                        match = re.search(r'Channel ID\s*:\s*(@\S+)', line)
+                        if match:
+                            details['channel_id'] = match.group(1).strip()
+
+                    # Extract Language
+                    elif 'Language' in line:
+                        match = re.search(r'Language\s*:\s*(.+?)$', line)
+                        if match:
+                            details['language'] = match.group(1).strip()
+
+                    # Extract Members
+                    elif 'Members' in line:
+                        match = re.search(r'Members\s*:\s*([\d,]+)', line)
+                        if match:
+                            details['members_count'] = match.group(1).replace(',', '').strip()
+
+                    # Extract Date Added
+                    elif 'Date Added' in line:
+                        match = re.search(r'Date Added\s*:\s*([A-Z][a-z]{2}\s+\d{1,2},\s+\d{4})', line)
+                        if match:
+                            details['date_added'] = match.group(1).strip()
+
+            # Extract Category from link in details section
             category_link = details_section.find('a', href=lambda x: x and '/channels/' in x)
-            details['category'] = category_link.text.strip() if category_link else ""
+            if category_link:
+                details['category'] = clean_text(category_link.get_text())
 
-            # Extract Language
-            language_match = re.search(r'Language\s*:\s*(\w+)', text)
-            details['language'] = language_match.group(1) if language_match else ""
-
-            # Extract Members
-            members_match = re.search(r'Members\s*:\s*([\d,]+)', text)
-            details['members_count'] = members_match.group(1).replace(',', '') if members_match else ""
-
-            # Extract Date Added
-            date_match = re.search(r'Date Added\s*:\s*([\w\s,]+)', text)
-            details['date_added'] = date_match.group(1).strip() if date_match else ""
-
-        # Extract tags
+        # Extract tags - find all tag links on the page
         tags = []
         tag_links = soup.find_all('a', href=lambda x: x and '/tag/' in x)
         for tag_link in tag_links:
-            tags.append(tag_link.text.strip())
-        details['tags'] = ', '.join(tags)
+            tag_text = clean_text(tag_link.get_text())
+            if tag_text and tag_text not in tags:  # Avoid duplicates
+                tags.append(tag_text)
+        details['tags'] = ', '.join(tags) if tags else ""
 
         # Extract full description
         desc_sections = soup.find_all('div', class_='reuse-grid')
@@ -170,7 +207,7 @@ def get_channel_details(channel_url):
             if h2 and 'Channel Description' in h2.text:
                 desc_p = section.find('p')
                 if desc_p:
-                    details['full_description'] = desc_p.text.strip()
+                    details['full_description'] = clean_text(desc_p.get_text())
                 break
 
         # Extract rating
@@ -179,52 +216,69 @@ def get_channel_details(channel_url):
             rating_text = rating_div.get_text()
             rating_match = re.search(r'Rated\s+(\S+)\s+out of\s+(\d+)', rating_text)
             if rating_match:
-                details['rating'] = rating_match.group(1)
-                details['total_reviews'] = rating_match.group(2)
+                details['rating'] = rating_match.group(1).strip()
+                details['total_reviews'] = rating_match.group(2).strip()
 
     except Exception as e:
-        print(f"Error parsing channel details: {e}")
+        print(f"Error parsing channel details: {e}", flush=True)
 
     return details
 
 def scrape_all_channels():
     """Main function to scrape all channels from all categories"""
     all_data = []
+    seen_usernames = set()  # Track usernames to avoid duplicates
 
     # Get all categories
     categories = get_categories()
 
     for i, category in enumerate(categories, 1):
-        print(f"\n[{i}/{len(categories)}] Processing category: {category['name']}")
+        print(f"\n[{i}/{len(categories)}] Processing category: {category['name']}", flush=True)
 
         # Get all channels in this category
         channels = get_channels_from_category(category['url'])
 
         for j, channel in enumerate(channels, 1):
-            print(f"  [{j}/{len(channels)}] Processing channel: {channel['name']}")
+            # Skip if we've already scraped this channel
+            if channel['username'] in seen_usernames:
+                print(f"  [{j}/{len(channels)}] Skipping duplicate: {channel['username']}", flush=True)
+                continue
+
+            print(f"  [{j}/{len(channels)}] Processing channel: {channel['name']}", flush=True)
 
             # Get detailed information
             details = get_channel_details(channel['url'])
 
+            # Use category from details if available, otherwise use current category
+            final_category = details.get('category', '') or category['name']
+
             # Combine all data
             channel_data = {
-                'category': category['name'],
+                'category': final_category,
                 'channel_name': channel['name'],
                 'username': channel['username'],
+                'channel_id': details.get('channel_id', ''),
                 'members': channel['members'],
+                'members_count': details.get('members_count', ''),
+                'language': details.get('language', ''),
+                'date_added': details.get('date_added', ''),
+                'tags': details.get('tags', ''),
                 'description': channel['description'],
+                'full_description': details.get('full_description', ''),
+                'rating': details.get('rating', ''),
+                'total_reviews': details.get('total_reviews', ''),
                 'channel_url': urljoin(BASE_URL, channel['url']),
-                **details
             }
 
             all_data.append(channel_data)
+            seen_usernames.add(channel['username'])
 
     return all_data
 
 def save_to_csv(data, filename='telegram_channels.csv'):
     """Save scraped data to CSV file"""
     if not data:
-        print("No data to save")
+        print("No data to save", flush=True)
         return
 
     # Define CSV columns
@@ -245,18 +299,18 @@ def save_to_csv(data, filename='telegram_channels.csv'):
         'channel_url'
     ]
 
-    print(f"\nSaving {len(data)} channels to {filename}...")
+    print(f"\nSaving {len(data)} channels to {filename}...", flush=True)
 
     with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames, extrasaction='ignore')
         writer.writeheader()
         writer.writerows(data)
 
-    print(f"Data saved successfully to {filename}")
+    print(f"Data saved successfully to {filename}", flush=True)
 
 if __name__ == "__main__":
-    print("Starting web scraper for bestoftelegram.com...")
-    print("=" * 60)
+    print("Starting web scraper for bestoftelegram.com...", flush=True)
+    print("=" * 60, flush=True)
 
     # Scrape all channels
     channels_data = scrape_all_channels()
@@ -264,6 +318,6 @@ if __name__ == "__main__":
     # Save to CSV
     save_to_csv(channels_data)
 
-    print("\n" + "=" * 60)
-    print("Scraping completed!")
-    print(f"Total channels scraped: {len(channels_data)}")
+    print("\n" + "=" * 60, flush=True)
+    print("Scraping completed!", flush=True)
+    print(f"Total channels scraped: {len(channels_data)}", flush=True)

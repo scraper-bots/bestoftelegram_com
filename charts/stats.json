@@ -1,0 +1,53 @@
+{
+  "total_channels": 483,
+  "total_categories": 32,
+  "top_category_by_members": [
+    "Others",
+    1594973.5555555555
+  ],
+  "most_competitive": [
+    "Adults",
+    21
+  ],
+  "best_opportunity": {
+    "category": "Others",
+    "avg_members": 1594973.5555555555,
+    "competition": 9,
+    "opportunity_score": 177219.28395061727
+  },
+  "top_language": [
+    "English",
+    468
+  ],
+  "top_tag": [
+    "photos",
+    41
+  ],
+  "fastest_growing": {
+    "category": "Others",
+    "growth_score": 1210.146855504974,
+    "avg_members": 1594973.5555555555,
+    "days_old": 1318,
+    "channel_count": 9
+  },
+  "top_3_opportunities": [
+    {
+      "category": "Others",
+      "avg_members": 1594973.5555555555,
+      "competition": 9,
+      "opportunity_score": 177219.28395061727
+    },
+    {
+      "category": "Dream 11",
+      "avg_members": 319042.125,
+      "competition": 8,
+      "opportunity_score": 39880.265625
+    },
+    {
+      "category": "News",
+      "avg_members": 571632.7333333333,
+      "competition": 15,
+      "opportunity_score": 38108.84888888888
+    }
+  ]
+}

@@ -10,7 +10,11 @@
       "Bash(python -X utf8:*)",
       "Bash(dir:*)",
       "Bash(python -u scraper.py:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(timeout /t 30)",
+      "WebFetch(domain:bestoftelegram.com)"
     ],
     "deny": [],
     "ask": []
