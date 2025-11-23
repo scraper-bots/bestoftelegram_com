@@ -9,7 +9,8 @@
       "Bash(chcp:*)",
       "Bash(python -X utf8:*)",
       "Bash(dir:*)",
-      "Bash(python -u scraper.py:*)"
+      "Bash(python -u scraper.py:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []
